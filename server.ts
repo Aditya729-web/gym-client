@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 
 const app = express();
 const PORT = 3000;
@@ -52,8 +51,13 @@ app.post("/api/chat", async (req, res) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Groq API error:", errorData);
-      return res.status(response.status).json({ error: "Failed to communicate with AI provider" });
+      console.error("API error:", errorData);
+      let parsedError = errorData;
+      try {
+        const parsed = JSON.parse(errorData);
+        parsedError = parsed.error?.message || errorData;
+      } catch(e) {}
+      return res.status(response.status).json({ error: `Provider error: ${parsedError}` });
     }
 
     const data = await response.json();
@@ -85,7 +89,8 @@ app.get("/api/admin/stats", (req, res) => {
 });
 
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

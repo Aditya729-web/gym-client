@@ -46,16 +46,23 @@ export function GymAIAssistant() {
         })
       });
 
-      if (!response.ok) throw new Error('Network response was not ok');
+      if (!response.ok) {
+        let errorMessage = 'Network response was not ok';
+        try {
+          const errData = await response.json();
+          errorMessage = errData.error || errorMessage;
+        } catch(e) {}
+        throw new Error(errorMessage);
+      }
       const data = await response.json();
       
       const botMessage = data.choices[0].message.content;
       setMessages(prev => [...prev, { role: 'assistant', content: botMessage }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'I am temporarily unavailable. Please try again later or contact the front desk directly.' 
+        content: `Error: ${error.message}. Please check your API key and model configuration.` 
       }]);
     } finally {
       setIsLoading(false);
