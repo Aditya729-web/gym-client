@@ -17,7 +17,7 @@ CRITICAL SCOPE RESTRICTION: You may ONLY answer questions related to the followi
 
 If a user asks something completely outside these topics (e.g., coding, politics, general history, non-gym products), politely redirect them back to gym-related topics and state your purpose. 
 
-Keep your answers concise, professional, and energetic. Format with markdown where appropriate.`;
+Keep your answers concise, professional, and energetic. Format with markdown where appropriate`;
 
 // API Router to handle both Vercel stripped paths and standard paths
 const apiRouter = express.Router();
