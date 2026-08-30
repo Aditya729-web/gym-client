@@ -1,0 +1,6 @@
+{
+  "name": "Apex Forge Gym",
+  "description": "Professional gym landing page and management dashboard",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
