@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import Groq from "groq-sdk";
 
 const app = express();
 const PORT = 3000;
@@ -18,8 +19,11 @@ If a user asks something completely outside these topics (e.g., coding, politics
 
 Keep your answers concise, professional, and energetic. Format with markdown where appropriate.`;
 
+// API Router to handle both Vercel stripped paths and standard paths
+const apiRouter = express.Router();
+
 // Groq chat endpoint proxy
-app.post("/api/chat", async (req, res) => {
+apiRouter.post("/chat", async (req, res) => {
   try {
     const { messages } = req.body;
     
@@ -32,39 +36,22 @@ app.post("/api/chat", async (req, res) => {
       return res.status(500).json({ error: "Groq API key not configured" });
     }
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-oss-120b",
-        messages: [
-          { role: "system", content: GYM_SYSTEM_PROMPT },
-          ...messages
-        ],
-        temperature: 0.7,
-        max_completion_tokens: 1024,
-      })
+    const groq = new Groq({ apiKey });
+
+    const completion = await groq.chat.completions.create({
+      model: "openai/gpt-oss-120b",
+      messages: [
+        { role: "system", content: GYM_SYSTEM_PROMPT },
+        ...messages
+      ],
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("API error:", errorData);
-      let parsedError = errorData;
-      try {
-        const parsed = JSON.parse(errorData);
-        parsedError = parsed.error?.message || errorData;
-      } catch(e) {}
-      return res.status(response.status).json({ error: `Provider error: ${parsedError}` });
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
+    res.json(completion);
+  } catch (error: any) {
     console.error("Chat proxy error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const message = error?.error?.message || error?.message || "Internal server error";
+    const status = error?.status || 500;
+    res.status(status).json({ error: message });
   }
 });
 
@@ -75,11 +62,11 @@ const mockMembers = [
   { id: 3, name: "Mike Johnson", email: "mike@example.com", joinDate: "2023-11-10", status: "Inactive", plan: "Quarterly Elite" },
 ];
 
-app.get("/api/admin/members", (req, res) => {
+apiRouter.get("/admin/members", (req, res) => {
   res.json(mockMembers);
 });
 
-app.get("/api/admin/stats", (req, res) => {
+apiRouter.get("/admin/stats", (req, res) => {
   res.json({
     totalMembers: 428,
     activeMembers: 395,
@@ -87,6 +74,10 @@ app.get("/api/admin/stats", (req, res) => {
     newSignups: 32,
   });
 });
+
+app.use("/api", apiRouter);
+// Fallback for Vercel if it strips the /api prefix when routing to api/index.ts
+app.use("/", apiRouter);
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
